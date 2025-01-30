@@ -18,6 +18,38 @@ mod tests {
             .connect(url).await
     }
 
+
+    #[tokio::test]
+    async fn test_prepare_stmt_query_as_stmt_using_bind() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("INSERT INTO categories VALUES ($1,$2,$3)");
+        sqlx::query(&stmt)
+            .bind("F").bind("Name").bind("Desc")
+            .execute(&pool).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_prepare_stmt_same_bind() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        sqlx::query("INSERT INTO categories VALUES ($1,$2,$2)")
+            .bind("C").bind("Name and Desc")
+            .execute(&pool).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_prepare_stmt() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        sqlx::query("INSERT INTO categories VALUES ($1,$2,$3)")
+            .bind("B").bind("Name").bind("Desc")
+            .execute(&pool).await?;
+
+        Ok(())
+    }
+
     #[tokio::test]
     async fn test_execute_sql() -> Result<(), Error> {
         let pool = get_pool().await?;
