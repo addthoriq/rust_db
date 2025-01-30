@@ -19,6 +19,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_execute_sql() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        sqlx::query("INSERT INTO categories VALUES ('1','Nama','Deskripsii')")
+            .execute(&pool).await?;
+
+        Ok(())
+    }
+
+
+    #[tokio::test]
+    async fn test_execute_sql_query_as_stmt() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("INSERT INTO categories VALUES ('2','Nama','Deskripsii')");
+        sqlx::query(&stmt)
+            .execute(&pool).await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_connection_pool() -> Result<(), Error> {
         let pool = get_pool().await?;
 
