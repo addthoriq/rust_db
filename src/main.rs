@@ -5,6 +5,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
+    use chrono::{Local, NaiveDateTime};
     use sqlx::{Connection, Error, PgConnection, Pool, Postgres, Row, FromRow};
     use sqlx::postgres::{PgPoolOptions, PgRow};
     use futures::TryStreamExt;
@@ -20,6 +21,39 @@ mod tests {
             .connect(url).await
     }
 
+    #[allow(dead_code)]
+    #[derive(Debug,FromRow)]
+    struct Brand {
+        id: String,
+        name: String,
+        description: String,
+        created_at: NaiveDateTime,
+        updated_at: NaiveDateTime
+    }
+
+    #[tokio::test]
+    async fn test_mapping_brands() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("SELECT * FROM brands;");
+        let result: Vec<Brand> = sqlx::query_as(&stmt).fetch_all(&pool).await?;
+
+        for brand in result {
+            println!("{:?}", brand)
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_insert_createdat() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("INSERT INTO brands VALUES ($1,$2,$3,$4,$4);");
+        sqlx::query(&stmt)
+            .bind("A").bind("Name").bind("Description").bind(Local::now().naive_local())
+            .execute(&pool).await?;
+
+        Ok(())
+    }
 
     #[tokio::test]
     // Menampilkan melalui Struct
