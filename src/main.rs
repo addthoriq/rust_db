@@ -6,7 +6,7 @@ fn main() {
 mod tests {
     use std::time::Duration;
     use chrono::{Local, NaiveDateTime};
-    use sqlx::{Connection, Error, PgConnection, Pool, Postgres, Row, FromRow};
+    use sqlx::{Connection, Error, FromRow, PgConnection, Pool, Postgres, Row, Transaction};
     use sqlx::postgres::{PgPoolOptions, PgRow};
     use futures::TryStreamExt;
 
@@ -21,6 +21,25 @@ mod tests {
             .connect(url).await
     }
 
+    #[tokio::test]
+    async fn test_transaction() -> Result<(), Error> {
+        let pool: Pool<Postgres> = get_pool().await?;
+        let mut transaction: Transaction<Postgres> = pool.begin().await?;
+        sqlx::query("INSERT INTO categories VALUES ($1,$2,$3);")
+            .bind("Z")
+            .bind("Test Category TRX")
+            .bind("Test Desc Trx")
+            .execute(&mut *transaction).await?;
+        sqlx::query("INSERT INTO brands VALUES ($1,$2,$3,$4,$4);")
+            .bind("M")
+            .bind("Test Brand Trx")
+            .bind("Test Desc Brand Trx")
+            .bind(Local::now().naive_local())
+            .execute(&mut *transaction).await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
     #[allow(dead_code)]
     #[derive(Debug,FromRow)]
     struct Brand {
@@ -33,8 +52,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mapping_brands() -> Result<(), Error> {
-        let pool = get_pool().await?;
-        let stmt = String::from("SELECT * FROM brands;");
+        let pool: Pool<Postgres> = get_pool().await?;
+        let stmt: String = String::from("SELECT * FROM brands;");
         let result: Vec<Brand> = sqlx::query_as(&stmt).fetch_all(&pool).await?;
 
         for brand in result {
