@@ -5,7 +5,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::time::Duration;
-    use sqlx::{Connection, Error, PgConnection, Pool, Postgres, Row};
+    use sqlx::{Connection, Error, PgConnection, Pool, Postgres, Row, FromRow};
     use sqlx::postgres::{PgPoolOptions, PgRow};
     use futures::TryStreamExt;
 
@@ -18,6 +18,60 @@ mod tests {
             .idle_timeout(Duration::from_secs(60)) // Koneksi pool tidak melakukan transaksi tapi
             // masih terkonek ke db
             .connect(url).await
+    }
+
+
+    #[tokio::test]
+    // Menampilkan melalui Struct
+    async fn test_mapping_struct_from_row() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("SELECT * FROM categories");
+        let result: Vec<Categories> = sqlx::query_as(&stmt)
+            .fetch_all(&pool).await?;
+
+        for category in result {
+            println!("{:?}", category);
+        }
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    #[derive(Debug, FromRow)]
+    struct Categories {
+        id: String,
+        name: String,
+        description: String
+    }
+
+    #[tokio::test]
+    // Menampilkan melalui Struct
+    async fn test_mapping_struct() -> Result<(), Error> {
+        let pool = get_pool().await?;
+        let stmt = String::from("SELECT * FROM categories");
+        let result: Vec<Category> = sqlx::query(&stmt)
+            .map(|row: PgRow|{
+                Category {
+                    id: row.get("id"),
+                    name: row.get("name"),
+                    description: row.get("description")
+                }
+            })
+            .fetch_all(&pool).await?;
+
+        for category in result {
+            println!("{:?}", category);
+        }
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    #[derive(Debug)]
+    struct Category {
+        id: String,
+        name: String,
+        description: String
     }
 
 
