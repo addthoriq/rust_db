@@ -22,6 +22,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_auto_increment_transaction() -> Result<(), Error> {
+        let pool: Pool<Postgres> = get_pool().await?;
+        let mut trx: Transaction<Postgres> = pool.begin().await?;
+        
+        let stmt: String = String::from("INSERT INTO sellers(name) VALUES ($1)");
+        sqlx::query(&stmt).bind("Contoh").execute(&mut *trx).await?;
+
+        let stmt: String = String::from("SELECT lastval() as id");
+
+        let result: PgRow = sqlx::query(&stmt).fetch_one(&mut *trx).await?;
+
+        let id: i32 = result.get_unchecked("id");
+        println!("ID: {}", id);
+
+        trx.commit().await?;
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_auto_increment_returning() -> Result<(), Error> {
+        let pool: Pool<Postgres> = get_pool().await?;
+        let stmt: String = String::from("INSERT INTO sellers(name) VALUES ($1) RETURNING id");
+        let result: PgRow = sqlx::query(&stmt).bind("Contoh").fetch_one(&pool).await?;
+
+        let id: i32 = result.get("id");
+        println!("ID Seller: {}", id);
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn test_transaction() -> Result<(), Error> {
         let pool: Pool<Postgres> = get_pool().await?;
         let mut transaction: Transaction<Postgres> = pool.begin().await?;
